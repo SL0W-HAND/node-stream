@@ -1,0 +1,6 @@
+[submodule "stream-express"]
+	path = stream-express
+	url = https://github.com/SL0W-HAND/stream-express.git
+[submodule "react-video-streaming"]
+	path = react-video-streaming
+	url = https://github.com/SL0W-HAND/react-video-streaming.git

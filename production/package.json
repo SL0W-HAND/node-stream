@@ -1,0 +1,37 @@
+{
+	"name": "videoapi",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"start": "node index.js",
+		"secret": "node ./scripts/generateSecret.js"
+	},
+	"jest": {
+		"testEnvironment": "node",
+		"coveragePathIgnorePatterns": [
+			"/node_modules/"
+		]
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"@hapi/boom": "^9.1.2",
+		"cookie-parser": "^1.4.5",
+		"cors": "^2.8.5",
+		"dotenv": "^10.0.0",
+		"express": "^4.17.1",
+		"get-video-duration": "^3.1.0",
+		"helmet": "^4.6.0",
+		"jsonwebtoken": "^8.5.1",
+		"passport": "^0.4.1",
+		"passport-cookie": "^1.0.9",
+		"passport-http": "^0.3.0",
+		"passport-jwt": "^4.0.0",
+		"thumbsupply": "^0.4.0"
+	},
+	"devDependencies": {
+		"morgan": "^1.10.0"
+	}
+}

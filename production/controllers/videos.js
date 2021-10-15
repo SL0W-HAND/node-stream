@@ -13,34 +13,54 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.randomVideo = exports.recomendVideos = exports.searchResuts = exports.searchVideos = exports.videoPoster = exports.video = exports.videoData = exports.pageVideos = void 0;
-//import { DefaultDeserializer } from 'v8';
-const db_1 = __importDefault(require("../database/db"));
 const index_1 = __importDefault(require("../config/index"));
 const fs_1 = __importDefault(require("fs"));
+const mongoose_1 = require("mongoose");
+const Video_1 = __importDefault(require("../Schemas/Video"));
+const Pages_1 = __importDefault(require("../Schemas/Pages"));
+try {
+    (0, mongoose_1.connect)('mongodb://localhost:27017/videodb');
+    console.log('connected to mongodb');
+}
+catch (error) {
+    console.log(error);
+    console.log('error connecting to mongodb');
+    process.exit(1);
+}
 const thumbsupply = require('thumbsupply');
-const db = new db_1.default();
 const pageVideos = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const allEntries = yield db.getPages();
+    //fix for mongo db
     if (!parseInt(req.params.page)) {
         return res.json('bad request');
     }
-    if (parseInt(req.params.page) - 1 > allEntries[0].total_pages ||
-        parseInt(req.params.page) - 1 < 0) {
+    const page = yield Pages_1.default.findOne({ page: parseInt(req.params.page) });
+    if (page == null) {
         return res.json('bad request');
     }
-    const page = allEntries[parseInt(req.params.page) - 1];
     return res.json(page);
 });
 exports.pageVideos = pageVideos;
 const videoData = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const data = yield db.getById(req.params.id);
-    //console.log(data)
-    return res.status(200).json(data);
+    //const data = await db.getById(req.params.id);
+    if (!parseInt(req.params.id)) {
+        return res.json('bad request');
+    }
+    try {
+        const data = yield Video_1.default.findOne({ _id: req.params.id });
+        if (data == null) {
+            return res.json(null);
+        }
+        return res.status(200).json(data);
+    }
+    catch (err) {
+        console.log(err);
+        return res.json(null);
+    }
 });
 exports.videoData = videoData;
 const video = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const videoData = yield db.getById(req.params.id);
+        const videoData = yield Video_1.default.findOne({ _id: req.params.id });
         const pathVideo = `${index_1.default.folderPath}/${videoData === null || videoData === void 0 ? void 0 : videoData.name}`;
         const stat = fs_1.default.statSync(pathVideo);
         const fileSize = stat.size;
@@ -75,66 +95,68 @@ const video = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.video = video;
 const videoPoster = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const video = yield db.getById(req.params.id);
-    if (video !== null) {
+    try {
+        const video = yield yield Video_1.default.findOne({ _id: req.params.id });
         thumbsupply
             .generateThumbnail(`${index_1.default.folderPath}/${video.name}`)
             .then((thumb) => {
             return res.sendFile(thumb);
         });
     }
-    else {
+    catch (_a) {
         res.status(404).json(null);
     }
 });
 exports.videoPoster = videoPoster;
 const searchVideos = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    //console.log(req.params.query)
-    const results = yield db.getByString(req.params.query);
-    if (results === null) {
-        return res.json([]);
-    }
-    const response = results[0];
-    if (!response)
-        return res.json([]);
-    return res.json(response.videos);
+    const results = yield Video_1.default.find({
+        name: { $regex: req.params.query, $options: 'i' },
+    })
+        .sort({ _id: -1 })
+        .limit(10);
+    return res.json(results);
 });
 exports.searchVideos = searchVideos;
 const searchResuts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    //console.log(req.params.query)
-    const results = yield db.getByString(req.params.query);
-    //console.log(results)
-    if (results === null) {
+    const results = yield Video_1.default.find({
+        name: { $regex: req.params.query, $options: 'i' },
+    })
+        .sort({ _id: -1 })
+        .limit(100);
+    if (results.length == 0) {
         return res.json([]);
     }
-    try {
-        return res.json(results[0].videos);
+    const total_pages = Math.ceil(results.length / 10);
+    let pages = [];
+    //chunck the results in gorups of 10 and push them into pages
+    for (let i = 0; i < total_pages; i++) {
+        pages.push({
+            page: i + 1,
+            total_pages: total_pages,
+            videos: results.slice(i * 10, (i + 1) * 10),
+        });
     }
-    catch (error) {
-        return res.json([]);
-    }
+    return res.json(pages[0].videos);
 });
 exports.searchResuts = searchResuts;
 const recomendVideos = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     //get a array of max 10 videos without the video that is being requested
-    console.log(req.params.id);
     try {
-        const allVideos = yield db.getAll();
-        const video = yield db.getById(req.params.id);
-        const videos = allVideos.filter((v) => v._id !== video._id);
-        const randomVideos = videos.sort(() => 0.5 - Math.random()).slice(0, 10);
+        const randomVideos = yield Video_1.default.find({
+            _id: { $ne: req.params.id },
+        })
+            .sort({ _id: -1 })
+            .limit(10);
         return res.json(randomVideos);
     }
-    catch (error) {
+    catch (_b) {
         return res.status(404).json(null);
     }
 });
 exports.recomendVideos = recomendVideos;
 const randomVideo = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    //a random video from the database
-    const allEntries = yield db.getAll();
-    const random = Math.floor(Math.random() * allEntries.length);
-    const video = allEntries[random];
+    //works from test but need to be fixed
+    const video = yield Video_1.default.findOne({}).sort({ _id: -1 });
     return res.json(video);
 });
 exports.randomVideo = randomVideo;

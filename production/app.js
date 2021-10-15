@@ -6,12 +6,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const passport_1 = __importDefault(require("passport"));
 const cors_1 = __importDefault(require("cors"));
-const index_1 = __importDefault(require("./config/index"));
-const passportMid_1 = __importDefault(require("./utils/middlewares/passportMid"));
 const morgan_1 = __importDefault(require("morgan"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const path_1 = __importDefault(require("path"));
+const index_1 = __importDefault(require("./config/index"));
+const passportMid_1 = __importDefault(require("./utils/middlewares/passportMid"));
 //import routes
 const videos_1 = __importDefault(require("./routes/videos"));
 const secret = index_1.default.jwtSecret;
@@ -25,6 +25,7 @@ else {
 function createToken() {
     return jsonwebtoken_1.default.sign({ auth: true }, secret, { expiresIn: '600s' });
 }
+//initialize express
 const app = (0, express_1.default)();
 //settings
 app.set('port', index_1.default.port);
@@ -41,11 +42,13 @@ app.use((0, cookie_parser_1.default)());
 app.use(passport_1.default.initialize());
 app.use(express_1.default.static(path_1.default.join(__dirname, 'build')));
 passport_1.default.use(passportMid_1.default);
-app.get('/', (req, res) => {
-    return res.send(`The API is at http://localhost:${app.get('port')}`);
-});
 //Routes
 app.use(videos_1.default);
+app.post('/example', (req, res) => {
+    res.cookie('lol', 'example').json({
+        message: 'example',
+    });
+});
 app.post('/login', (req, res, next) => {
     if (!req.body.password) {
         res.cookie('token', { maxAge: 0 })
@@ -83,7 +86,6 @@ app.get('/refresh_token', passport_1.default.authenticate('jwt', { session: fals
     res.cookie('token', token, {
         httpOnly: true,
         secure: false,
-        maxAge: 1000 * 60 * 15,
     })
         .json({
         auth: true,

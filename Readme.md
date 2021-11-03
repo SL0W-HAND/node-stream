@@ -7,8 +7,6 @@ This app also has the optional use of a database, you decide if you want to use 
 
 ## Table of Contents
 
-# Table of Contents
-
 1. [Introduction](#Introduction)
 2. [Technical details](#technical-details)
 3. [Run step by step](#run-step-by-step)
